@@ -1452,7 +1452,7 @@
       allStudents[currentClass].push({
         number,
         name,
-        scores: distributeCriteriaPoints(roundedTotal)
+        scores: randomDistributeCriteriaPoints(roundedTotal)
       });
       updateTable();
       saveToLocalStorage();
@@ -1662,7 +1662,7 @@
       allStudents[currentClass][index] = {
         number,
         name,
-        scores: distributeCriteriaPoints(roundedTotal)
+        scores: randomDistributeCriteriaPoints(roundedTotal)
       };
       updateTable();
       saveToLocalStorage();
@@ -2055,7 +2055,7 @@
       // Toplam puanı 5'in katı yap
       const roundedTotal = Math.round(totalPoints / 5) * 5;
       
-      const distributedPoints = distributeCriteriaPoints(roundedTotal);
+      const distributedPoints = randomDistributeCriteriaPoints(roundedTotal);
       
       previewDiv.innerHTML = '';
       previewContainer.style.display = 'block';
