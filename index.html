@@ -1691,7 +1691,7 @@
       // Toplam puanı 5'in katı yap
       const roundedTotal = Math.round(totalPoints / 5) * 5;
       
-      const distributedPoints = distributeCriteriaPoints(roundedTotal);
+      const distributedPoints = randomDistributeCriteriaPoints(roundedTotal);
       
       previewDiv.innerHTML = '';
       previewContainer.style.display = 'block';
@@ -1806,14 +1806,8 @@
               type="text" 
               class="total-score-input"
               value="${total}" 
-              min="0" 
-              max="100"
-              step="5"
-              data-student="${currentClass}-${idx}"
-              data-value="${total}"
-              oninput="updateTotalScore(this)"
-              onfocus="this.select()"
-              onblur="handleEmptyTotal(this)"
+              readonly
+              style="background-color: #f5f5f5;"
             />
           </td>
           <td class="no-print">
@@ -1929,6 +1923,44 @@
           remaining--;
         }
         index = (index + 1) % 10;
+      }
+      
+      return scores;
+    }
+
+    // Rastgele puan dağıtım fonksiyonu
+    function randomDistributeCriteriaPoints(total) {
+      if (total <= 0) {
+        return Array(10).fill(0);
+      }
+      
+      if (total > 100) {
+        total = 100;
+      }
+      
+      const scores = Array(10).fill(0);
+      let remaining = total;
+      
+      // Her kritere rastgele puan dağıt (5'in katları olarak)
+      while (remaining > 0) {
+        for (let i = 0; i < 10 && remaining > 0; i++) {
+          if (scores[i] < 10) {
+            const maxAdd = Math.min(5, remaining, 10 - scores[i]);
+            scores[i] += maxAdd;
+            remaining -= maxAdd;
+          }
+        }
+        
+        // Eğer hala dağıtılacak puan kaldıysa ve hiçbir kriter 10'dan küçük değilse, döngüyü sonlandır
+        if (remaining > 0 && scores.every(score => score >= 10)) {
+          break;
+        }
+      }
+      
+      // Puanları karıştır
+      for (let i = scores.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [scores[i], scores[j]] = [scores[j], scores[i]];
       }
       
       return scores;
