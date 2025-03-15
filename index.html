@@ -557,12 +557,18 @@
       padding: 4px;
     }
     .criteria-row th {
-      font-size: 10px; 
+      font-size: 9px; 
       background: #e9ecef; 
       width: calc((100% - (6% + 14% + 5%)) / 10);
-      min-height: 40px; 
-      line-height: 1.1; 
-      padding: 2px;
+      min-height: 50px; 
+      height: auto;
+      line-height: 1.2; 
+      padding: 4px;
+      white-space: normal;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      -webkit-hyphens: auto;
+      hyphens: auto;
     }
     .student-number-header {
       width: 6%; 
@@ -1783,17 +1789,43 @@
         let lines = [];
         let currentLine = [];
         let currentLength = 0;
+        
+        // Her kelimeyi kontrol et ve uygun şekilde satırlara böl
         words.forEach(word => {
-          if(currentLength + word.length > 15) {
+          // Eğer kelime tek başına çok uzunsa, uygun yerlerden böl
+          if (word.length > 12) {
+            if (currentLine.length > 0) {
+              lines.push(currentLine.join(' '));
+              currentLine = [];
+              currentLength = 0;
+            }
+            // Uzun kelimeyi uygun yerlerden böl
+            const parts = word.match(/.{1,12}/g) || [word];
+            parts.forEach((part, index) => {
+              if (index < parts.length - 1) {
+                lines.push(part + '-');
+              } else {
+                currentLine = [part];
+                currentLength = part.length;
+              }
+            });
+          }
+          // Normal kelime işleme
+          else if (currentLength + word.length > 12) {
             lines.push(currentLine.join(' '));
             currentLine = [word];
             currentLength = word.length;
           } else {
             currentLine.push(word);
-            currentLength += word.length+1;
+            currentLength += word.length + 1;
           }
         });
-        if(currentLine.length>0) lines.push(currentLine.join(' '));
+        
+        // Kalan kelimeleri son satır olarak ekle
+        if (currentLine.length > 0) {
+          lines.push(currentLine.join(' '));
+        }
+        
         return lines.join('\n');
       });
       updateCriteriaDisplay();
@@ -2117,3 +2149,4 @@
   </script>
 </body>
 </html>
+
