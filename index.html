@@ -1844,35 +1844,42 @@
       
       // Toplam puan giriş alanlarına değişiklik dinleyicisi ekle
       document.querySelectorAll('.total-score-input').forEach(input => {
-        input.addEventListener('change', updateTotalScore);
-        input.addEventListener('input', updateTotalScore);
+        // Hem change hem de input olaylarını dinle
+        input.addEventListener('change', function() {
+          updateTotalScoreAndDistribute(this);
+        });
         
-        function updateTotalScore() {
-          const info = this.dataset.student.split('-');
-          const cls = info[0];
-          const studentIdx = parseInt(info[1]);
-          const newTotal = parseInt(this.value) || 0;
-          
-          // Toplam puanı 5'in katı yap
-          const roundedTotal = Math.round(newTotal / 5) * 5;
-          this.value = roundedTotal;
-          
-          // Puanları dağıt
-          const distributedScores = distributeCriteriaPoints(roundedTotal);
-          allStudents[cls][studentIdx].scores = distributedScores;
-          
-          // Tüm puan giriş alanlarını güncelle
-          const row = this.closest('tr');
-          const scoreInputs = row.querySelectorAll('.score-input');
-          scoreInputs.forEach((input, index) => {
-            input.value = distributedScores[index];
-            input.dataset.value = distributedScores[index];
-          });
-          
-          this.dataset.value = roundedTotal;
-          saveToLocalStorage();
-        }
+        input.addEventListener('input', function() {
+          updateTotalScoreAndDistribute(this);
+        });
       });
+    }
+
+    // Toplam puanı güncelleyen ve kriterlere dağıtan fonksiyon
+    function updateTotalScoreAndDistribute(inputElement) {
+      const info = inputElement.dataset.student.split('-');
+      const cls = info[0];
+      const studentIdx = parseInt(info[1]);
+      const newTotal = parseInt(inputElement.value) || 0;
+      
+      // Toplam puanı 5'in katı yap
+      const roundedTotal = Math.round(newTotal / 5) * 5;
+      inputElement.value = roundedTotal;
+      
+      // Puanları dağıt
+      const distributedScores = distributeCriteriaPoints(roundedTotal);
+      allStudents[cls][studentIdx].scores = distributedScores;
+      
+      // Tüm puan giriş alanlarını güncelle
+      const row = inputElement.closest('tr');
+      const scoreInputs = row.querySelectorAll('.score-input');
+      scoreInputs.forEach((input, index) => {
+        input.value = distributedScores[index];
+        input.dataset.value = distributedScores[index];
+      });
+      
+      inputElement.dataset.value = roundedTotal;
+      saveToLocalStorage();
     }
 
     function updateTitles() {
@@ -1927,17 +1934,23 @@
         [criteriaIndices[i], criteriaIndices[j]] = [criteriaIndices[j], criteriaIndices[i]];
       }
       
-      // İlk tur: Karıştırılmış kriterlere 5'er puan dağıt (mümkünse)
+      // İlk tur: Her kritere en fazla 5 puan dağıt (mümkünse)
       for (let i = 0; i < count && remainingPoints >= 5; i++) {
         const index = criteriaIndices[i];
         scores[index] = 5;
         remainingPoints -= 5;
       }
       
-      // İkinci tur: Kalan puanları rastgele dağıt
+      // İkinci tur: Kalan puanları rastgele dağıt, her kritere maksimum 10 puan olacak şekilde
       while (remainingPoints >= 5) {
+        // Rastgele bir kriter seç, ancak puanı 10'dan az olan kriterlerden seç
+        const availableCriteria = criteriaIndices.filter(index => scores[index] < 10);
+        
+        // Eğer tüm kriterler 10 puana ulaştıysa, döngüden çık
+        if (availableCriteria.length === 0) break;
+        
         // Rastgele bir kriter seç
-        const randomIndex = Math.floor(Math.random() * count);
+        const randomIndex = availableCriteria[Math.floor(Math.random() * availableCriteria.length)];
         
         // Seçilen kritere 5 puan ekle
         scores[randomIndex] += 5;
