@@ -1857,36 +1857,17 @@
     // Toplam puan güncelleme işleyicisi
     window.updateTotalScore = function(input) {
       try {
-        console.log("Toplam puan değişti:", input.value);
-        
         const info = input.dataset.student.split('-');
         const cls = info[0];
         const studentIdx = parseInt(info[1]);
         
         // Boş değer kontrolü
         if (input.value.trim() === '') {
-          // Tüm puanları sıfırla
-          if (allStudents[cls] && allStudents[cls][studentIdx]) {
-            allStudents[cls][studentIdx].scores = Array(10).fill(0);
-            const row = input.closest('tr');
-            const scoreInputs = row.querySelectorAll('.score-input');
-            scoreInputs.forEach(input => {
-              input.value = '0';
-              input.dataset.value = '0';
-            });
-            saveToLocalStorage();
-          }
           return;
         }
         
-        // Sayısal değer kontrolü ve temizleme
-        let cleanValue = input.value.replace(/[^0-9]/g, '');
-        let newTotal = parseInt(cleanValue);
-        
-        // Geçersiz değer kontrolü
-        if (isNaN(newTotal)) {
-          newTotal = 0;
-        }
+        // Sayısal değer kontrolü
+        let newTotal = parseInt(input.value) || 0;
         
         // 100'den büyük değerleri sınırla
         if (newTotal > 100) {
@@ -1895,76 +1876,62 @@
         
         // 5'in katına yuvarlama
         const roundedTotal = Math.round(newTotal / 5) * 5;
-        console.log(`Toplam puan: ${newTotal} -> ${roundedTotal}`);
-        
-        // Puanları dağıt
-        const distributedScores = distributeCriteriaPoints(roundedTotal);
-        console.log("Dağıtılan puanlar:", distributedScores);
         
         // Öğrenci verilerini güncelle
         if (allStudents[cls] && allStudents[cls][studentIdx]) {
+          // Puanları dağıt
+          const scores = distributeCriteriaPoints(roundedTotal);
+          
           // Toplam puanı güncelle
           input.value = roundedTotal;
-          input.dataset.value = roundedTotal;
           
-          // Puanları dağıt ve kaydet
-          allStudents[cls][studentIdx].scores = [...distributedScores];
+          // Öğrenci verilerini güncelle
+          allStudents[cls][studentIdx].scores = scores;
           
           // Kriter puanlarını güncelle
           const row = input.closest('tr');
           const scoreInputs = row.querySelectorAll('.score-input');
-          scoreInputs.forEach((scoreInput, index) => {
-            if (index < distributedScores.length) {
-              scoreInput.value = distributedScores[index];
-              scoreInput.dataset.value = distributedScores[index];
-            }
+          
+          scoreInputs.forEach((input, index) => {
+            input.value = scores[index];
           });
           
           saveToLocalStorage();
-        } else {
-          console.error("Öğrenci verisi bulunamadı:", cls, studentIdx);
         }
       } catch (error) {
-        console.error("Toplam puan değişikliği işlenirken hata:", error);
+        console.error("Puan güncellenirken hata:", error);
       }
     };
 
-    function distributeCriteriaPoints(totalPoints) {
-      try {
-        const count = 10; // 10 kriter
-        
-        // Toplam puanı kontrol et
-        if (totalPoints <= 0) {
-          return Array(count).fill(0);
-        }
-        
-        if (totalPoints > 100) {
-          totalPoints = 100;
-        }
-        
-        // Her kritere eşit dağıtılacak baz puanı hesapla
-        const basePoints = Math.floor(totalPoints / count);
-        let remainingPoints = totalPoints - (basePoints * count);
-        
-        // Puanları dağıt
-        const scores = Array(count).fill(basePoints);
-        
-        // Kalan puanları rastgele dağıt
-        while (remainingPoints > 0) {
-          for (let i = 0; i < count && remainingPoints > 0; i++) {
-            if (scores[i] < 10) { // Her kriter maksimum 10 puan alabilir
-              scores[i]++;
-              remainingPoints--;
-            }
-          }
-        }
-        
-        console.log("Dağıtılan puanlar:", scores, "Toplam:", scores.reduce((a,b)=>a+b,0));
-        return scores;
-      } catch (error) {
-        console.error("Puan dağıtımı sırasında hata:", error);
+    function distributeCriteriaPoints(total) {
+      // 0 kontrolü
+      if (total <= 0) {
         return Array(10).fill(0);
       }
+      
+      // 100 kontrolü
+      if (total > 100) {
+        total = 100;
+      }
+      
+      // Her kritere eşit dağıtılacak temel puanı hesapla
+      const basePoint = Math.floor(total / 10);
+      let remaining = total - (basePoint * 10);
+      
+      // Temel puanları dağıt
+      const scores = Array(10).fill(basePoint);
+      
+      // Kalan puanları dağıt
+      let index = 0;
+      while (remaining > 0) {
+        if (scores[index] < 10) {
+          scores[index]++;
+          remaining--;
+        }
+        index = (index + 1) % 10;
+      }
+      
+      return scores;
     }
 
     /* ========== LocalStorage İşlemleri ========== */
