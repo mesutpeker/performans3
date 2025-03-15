@@ -885,7 +885,7 @@
       if (!currentClass && sortedClasses.length > 0) {
         currentClass = sortedClasses[0];
         select.value = currentClass;
-        highlightTab(currentClass);
+        rebuildTabs();
         updateTable();
       }
     }
@@ -921,7 +921,6 @@
       }
       rebuildTabs();
       updateClassSelectMenu();
-      highlightTab(currentClass);
       updateTable();
       saveToLocalStorage();
     }
@@ -964,21 +963,22 @@
       closeEditClassPopup();
       rebuildTabs();
       updateClassSelectMenu();
-      highlightTab(currentClass);
       updateTable();
       saveToLocalStorage();
     }
     function rebuildTabs() {
       const tabsContainer = document.getElementById('tabsContainer');
       tabsContainer.innerHTML = '';
-      for(const cls of Object.keys(allStudents)) {
+      
+      // Eğer bir sınıf seçilmişse, sadece o sınıfın butonunu göster
+      if (currentClass && allStudents[currentClass]) {
         const wrapper = document.createElement('div');
         wrapper.className = 'class-tab-wrapper';
 
         const btn = document.createElement('button');
-        btn.classList.add('tab-btn');
-        btn.textContent = cls;
-        btn.onclick = () => switchClass(cls);
+        btn.classList.add('tab-btn', 'active');
+        btn.textContent = currentClass;
+        btn.onclick = () => switchClass(currentClass);
 
         const editBtn = document.createElement('button');
         editBtn.className = 'class-edit-btn';
@@ -986,7 +986,7 @@
         editBtn.title = 'Sınıfı Düzenle';
         editBtn.onclick = (e) => {
           e.stopPropagation();
-          editClass(cls);
+          editClass(currentClass);
         };
 
         const delBtn = document.createElement('button');
@@ -995,7 +995,7 @@
         delBtn.title = 'Sınıfı Sil';
         delBtn.onclick = (e) => {
           e.stopPropagation();
-          deleteClass(cls);
+          deleteClass(currentClass);
         };
 
         wrapper.appendChild(btn);
@@ -1006,17 +1006,9 @@
     }
     function switchClass(cls) {
       currentClass = cls;
-      highlightTab(cls);
+      rebuildTabs();
       updateTable();
       document.getElementById("classSelect").value = cls;
-    }
-    function highlightTab(cls) {
-      document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.classList.remove("active");
-        if (btn.textContent === cls) {
-          btn.classList.add("active");
-        }
-      });
     }
 
     /* ========== Öğrenci Ekle ========== */
