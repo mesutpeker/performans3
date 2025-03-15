@@ -1597,13 +1597,13 @@
         allStudents[className] = [];
         
         clsObj.students.forEach(stuObj => {
-          if(!stuObj.number || !stuObj.name || stuObj.points == null) {
+          if(!stuObj.number || !stuObj.name) {
             console.warn('Geçersiz öğrenci verisi:', stuObj);
             return;
           }
           
-          // Puanı 5'in katı yap
-          const points = Math.round(parseInt(stuObj.points) / 5) * 5;
+          // Puanı 5'in katı yap ve varsayılan olarak 0 kullan
+          const points = stuObj.points ? Math.round(parseInt(stuObj.points) / 5) * 5 : 0;
           
           allStudents[className].push({
             number: stuObj.number,
@@ -1615,6 +1615,7 @@
 
       console.log('İşlenmiş veriler:', allStudents);
       saveToLocalStorage();
+      updateTable(); // Tabloyu güncelle
     }
 
     /* ========== Öğrenci Düzenleme Fonksiyonları ========== */
@@ -1794,6 +1795,7 @@
                 max="10"
                 data-info="${currentClass}-${idx}-${ci}"
                 data-value="${score}"
+                onchange="updateScore(this)"
               />
             </td>`;
         });
@@ -1809,6 +1811,7 @@
               step="5"
               data-student="${currentClass}-${idx}"
               data-value="${total}"
+              onchange="updateTotalScore(this)"
             />
           </td>
           <td class="no-print">
@@ -1817,57 +1820,47 @@
           </td>`;
         tbody.appendChild(row);
       });
-      
-      // Puan giriş alanlarına değişiklik dinleyicisi ekle
-      document.querySelectorAll('.score-input').forEach(input => {
-        input.addEventListener('change', function() {
-          const info = this.dataset.info.split('-');
-          const cls = info[0];
-          const studentIdx = parseInt(info[1]);
-          const scoreIdx = parseInt(info[2]);
-          const newValue = parseInt(this.value) || 0;
-          
-          // Değeri güncelle
-          allStudents[cls][studentIdx].scores[scoreIdx] = newValue;
-          this.dataset.value = newValue;
-          
-          // Toplam puanı güncelle
-          const row = this.closest('tr');
-          const total = allStudents[cls][studentIdx].scores.reduce((a,b)=>a+b,0);
-          const totalInput = row.querySelector('.total-score-input');
-          totalInput.value = total;
-          totalInput.dataset.value = total;
-          
-          saveToLocalStorage();
-        });
-      });
-      
-      // Toplam puan giriş alanlarına değişiklik dinleyicisi ekle
-      document.querySelectorAll('.total-score-input').forEach(input => {
-        // Hem change hem de input olaylarını dinle
-        input.addEventListener('change', totalScoreChangeHandler);
-        input.addEventListener('input', totalScoreChangeHandler);
-      });
     }
 
-    // Toplam puan değişikliği için olay işleyicisi
-    function totalScoreChangeHandler(event) {
+    // Bireysel puan güncelleme işleyicisi
+    window.updateScore = function(input) {
+      const info = input.dataset.info.split('-');
+      const cls = info[0];
+      const studentIdx = parseInt(info[1]);
+      const scoreIdx = parseInt(info[2]);
+      const newValue = parseInt(input.value) || 0;
+      
+      // Değeri güncelle
+      allStudents[cls][studentIdx].scores[scoreIdx] = newValue;
+      input.dataset.value = newValue;
+      
+      // Toplam puanı güncelle
+      const row = input.closest('tr');
+      const total = allStudents[cls][studentIdx].scores.reduce((a,b)=>a+b,0);
+      const totalInput = row.querySelector('.total-score-input');
+      totalInput.value = total;
+      totalInput.dataset.value = total;
+      
+      saveToLocalStorage();
+    };
+
+    // Toplam puan güncelleme işleyicisi
+    window.updateTotalScore = function(input) {
       try {
-        console.log("Toplam puan değişti:", event.target.value);
+        console.log("Toplam puan değişti:", input.value);
         
-        const inputElement = event.target;
-        const info = inputElement.dataset.student.split('-');
+        const info = input.dataset.student.split('-');
         const cls = info[0];
         const studentIdx = parseInt(info[1]);
         
         // Toplam puanı al ve 5'in katı yap
-        let newTotal = parseInt(inputElement.value) || 0;
+        let newTotal = parseInt(input.value) || 0;
         const roundedTotal = Math.round(newTotal / 5) * 5;
         
         console.log(`Toplam puan: ${newTotal} -> ${roundedTotal}`);
         
         // Yuvarlanan değeri input'a yaz
-        inputElement.value = roundedTotal;
+        input.value = roundedTotal;
         
         // Puanları dağıt
         const distributedScores = distributeCriteriaPoints(roundedTotal);
@@ -1878,17 +1871,17 @@
           allStudents[cls][studentIdx].scores = [...distributedScores];
           
           // Tüm puan giriş alanlarını güncelle
-          const row = inputElement.closest('tr');
+          const row = input.closest('tr');
           const scoreInputs = row.querySelectorAll('.score-input');
           
-          scoreInputs.forEach((input, index) => {
+          scoreInputs.forEach((scoreInput, index) => {
             if (index < distributedScores.length) {
-              input.value = distributedScores[index];
-              input.dataset.value = distributedScores[index];
+              scoreInput.value = distributedScores[index];
+              scoreInput.dataset.value = distributedScores[index];
             }
           });
           
-          inputElement.dataset.value = roundedTotal;
+          input.dataset.value = roundedTotal;
           saveToLocalStorage();
         } else {
           console.error("Öğrenci verisi bulunamadı:", cls, studentIdx);
@@ -1896,7 +1889,7 @@
       } catch (error) {
         console.error("Toplam puan değişikliği işlenirken hata:", error);
       }
-    }
+    };
 
     function distributeCriteriaPoints(totalPoints) {
       try {
