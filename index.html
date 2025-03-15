@@ -1803,7 +1803,7 @@
         row.innerHTML += `
           <td>
             <input 
-              type="number" 
+              type="text" 
               class="total-score-input"
               value="${total}" 
               min="0" 
@@ -1813,6 +1813,7 @@
               data-value="${total}"
               oninput="updateTotalScore(this)"
               onfocus="this.select()"
+              onblur="handleEmptyTotal(this)"
             />
           </td>
           <td class="no-print">
@@ -1845,6 +1846,14 @@
       saveToLocalStorage();
     };
 
+    // Boş bırakılan toplam puan alanını kontrol et
+    window.handleEmptyTotal = function(input) {
+      if (input.value.trim() === '') {
+        input.value = '0';
+        updateTotalScore(input);
+      }
+    };
+
     // Toplam puan güncelleme işleyicisi
     window.updateTotalScore = function(input) {
       try {
@@ -1854,19 +1863,31 @@
         const cls = info[0];
         const studentIdx = parseInt(info[1]);
         
-        // Boş veya geçersiz değer kontrolü
-        if (input.value === '' || isNaN(input.value)) {
-          input.value = '0';
+        // Boş değer kontrolü - boş ise puanları sıfırlama
+        if (input.value.trim() === '') {
+          return;
+        }
+        
+        // Sayısal değer kontrolü
+        if (isNaN(input.value)) {
+          input.value = input.value.replace(/[^0-9]/g, '');
         }
         
         // Toplam puanı al ve 5'in katı yap
         let newTotal = parseInt(input.value) || 0;
         const roundedTotal = Math.round(newTotal / 5) * 5;
         
+        // 100'den büyükse 100'e sabitle
+        if (roundedTotal > 100) {
+          newTotal = 100;
+        }
+        
         console.log(`Toplam puan: ${newTotal} -> ${roundedTotal}`);
         
-        // Yuvarlanan değeri input'a yaz
-        input.value = roundedTotal;
+        // Yuvarlanan değeri input'a yaz (sadece geçerli bir sayı varsa)
+        if (input.value !== '') {
+          input.value = roundedTotal;
+        }
         
         // Puanları dağıt
         const distributedScores = distributeCriteriaPoints(roundedTotal);
