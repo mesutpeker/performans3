@@ -467,6 +467,12 @@
       box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05);
     }
     
+    .popup-content input:focus {
+      border-color: #673AB7;
+      box-shadow: 0 0 0 2px rgba(103, 58, 183, 0.2);
+      outline: none;
+    }
+    
     .popup-content label {
       display: block;
       margin-bottom: 8px;
@@ -971,7 +977,7 @@
         <div id="addPointsPreview" class="points-preview-grid"></div>
       </div>
 
-      <!-- Buton grubu -->
+      <!-- Buton grubu (JSON'dan ekle butonu kaldırıldı) -->
       <div class="button-group">
         <button onclick="addStudent()" class="add-btn">Öğrenci Ekle</button>
         <button onclick="printTables()" class="print-btn">Yazdır</button>
@@ -1264,12 +1270,13 @@
 
     /* Sınıf seç menüsünü güncelle */
     function updateClassSelectMenu() {
-      console.log('updateClassSelectMenu çağrıldı');
+      console.log('updateClassSelectMenu çağrıldı'); // Debug için log
       const select = document.getElementById('classSelect');
       select.innerHTML = '<option value="">-- Sınıf Seçiniz --</option>';
       
+      // Sınıfları alfabetik sıraya göre sırala
       const sortedClasses = Object.keys(allStudents).sort();
-      console.log('Sıralanmış sınıflar:', sortedClasses);
+      console.log('Sıralanmış sınıflar:', sortedClasses); // Debug için log
       
       sortedClasses.forEach(cls => {
         const option = document.createElement('option');
@@ -1278,6 +1285,7 @@
         select.appendChild(option);
       });
       
+      // Eğer bir sınıf seçili değilse ve sınıflar varsa, ilk sınıfı seç
       if (!currentClass && sortedClasses.length > 0) {
         currentClass = sortedClasses[0];
         select.value = currentClass;
@@ -1366,6 +1374,7 @@
       const tabsContainer = document.getElementById('tabsContainer');
       tabsContainer.innerHTML = '';
       
+      // Eğer bir sınıf seçilmişse, sadece o sınıfın butonunu göster
       if (currentClass && allStudents[currentClass]) {
         const wrapper = document.createElement('div');
         wrapper.className = 'class-tab-wrapper';
@@ -1475,7 +1484,7 @@
       popup.style.display = 'flex';
       setTimeout(() => {
         popup.classList.add('active');
-        updateExcelPointsPreview();
+        updateExcelPointsPreview(); // Önizlemeyi göster
       }, 10);
     }
     function closeExcelPopup() {
@@ -1503,9 +1512,9 @@
       let addedCount = 0;
       lines.forEach(line => {
         const parts = line.split(/\s+/).filter(Boolean);
-        if(parts.length >= 2) {
+        if(parts.length >= 2) { // En az 2 parça olmalı (numara ve isim)
           const studentNumber = parts[0];
-          const studentName = parts.slice(1).join(' ');
+          const studentName = parts.slice(1).join(' '); // Geri kalan tüm parçaları isim olarak al
           
           if(!allStudents[currentClass].some(s => s.number === studentNumber)) {
             allStudents[currentClass].push({
@@ -1539,15 +1548,18 @@
       
       previewDiv.innerHTML = '';
       
+      // Puan dağılımını göster
       let html = '<div class="points-preview-table">';
       html += '<table style="width:100%; border-collapse: collapse; margin-top: 5px;">';
       html += '<tr style="background-color: #f5f5f5;">';
       
+      // Kriter başlıkları
       for (let i = 0; i < 10; i++) {
         html += `<th style="padding: 5px; border: 1px solid #ddd; font-size: 12px; text-align: center;">K${i+1}</th>`;
       }
       html += '</tr><tr>';
       
+      // Puan değerleri
       distributedPoints.forEach(point => {
         html += `<td style="padding: 5px; border: 1px solid #ddd; font-size: 12px; text-align: center;">${point}</td>`;
       });
@@ -1571,6 +1583,7 @@
         return;
       }
       
+      // Mevcut verileri temizle
       allStudents = {};
       
       data.classes.forEach(clsObj => {
@@ -1589,6 +1602,7 @@
             return;
           }
           
+          // Puanı 5'in katı yap
           const points = Math.round(parseInt(stuObj.points) / 5) * 5;
           
           allStudents[className].push({
@@ -1613,7 +1627,7 @@
       document.getElementById('editStudentName').value = student.name;
       const totalPoints = student.scores.reduce((a,b)=>a+b,0);
       document.getElementById('editPoints').value = totalPoints;
-      updatePointsPreview();
+      updatePointsPreview(); // Önizlemeyi güncelle
       popup.style.display = 'flex';
     };
     window.closePopup = function() {
@@ -1641,6 +1655,7 @@
         return;
       }
       
+      // Toplam puanı 5'in katı yap
       const roundedTotal = Math.round(totalPoints / 5) * 5;
       
       allStudents[currentClass][index] = {
@@ -1672,6 +1687,7 @@
         return;
       }
       
+      // Toplam puanı 5'in katı yap
       const roundedTotal = Math.round(totalPoints / 5) * 5;
       
       const distributedPoints = distributeCriteriaPoints(roundedTotal);
@@ -1679,15 +1695,18 @@
       previewDiv.innerHTML = '';
       previewContainer.style.display = 'block';
       
+      // Puan dağılımını göster
       let html = '<div class="points-preview-table">';
       html += '<table style="width:100%; border-collapse: collapse; margin-top: 10px;">';
       html += '<tr style="background-color: #f5f5f5;">';
       
+      // Kriter başlıkları
       for (let i = 0; i < 10; i++) {
         html += `<th style="padding: 5px; border: 1px solid #ddd; font-size: 12px; text-align: center;">K${i+1}</th>`;
       }
       html += '</tr><tr>';
       
+      // Puan değerleri
       distributedPoints.forEach(point => {
         html += `<td style="padding: 5px; border: 1px solid #ddd; font-size: 12px; text-align: center;">${point}</td>`;
       });
@@ -1702,42 +1721,55 @@
       previewDiv.innerHTML = html;
     };
 
-    /* ========== Güncellenmiş Dağıtım Fonksiyonu ========== */
-    // Bu fonksiyon, toplam puanı 5'in katları halinde (0, 5, 10) her bir kritere eşit veya sırayla dağıtır.
-    function distributeCriteriaPoints(totalPoints) {
-      const count = 10; // 10 kriter
-      // Toplam puanı 5'in katı yap (yuvarla)
-      totalPoints = Math.round(totalPoints / 5) * 5;
-      if (totalPoints <= 0) return Array(count).fill(0);
-      if (totalPoints > 100) totalPoints = 100;
-      
-      const average = totalPoints / count;
-      const basePoints = Math.floor(average / 5) * 5;
-      
-      const scores = Array(count).fill(basePoints);
-      let remaining = totalPoints - basePoints * count;
-      
-      // Kalan puanları sırayla 5'er 5'er dağıt, her sütunda maksimum 10 olacak şekilde
-      for (let i = 0; i < count && remaining >= 5; i++) {
-         if (scores[i] + 5 <= 10) {
-              scores[i] += 5;
-              remaining -= 5;
-         }
-      }
-      while (remaining >= 5) {
-         let updated = false;
-         for (let i = 0; i < count && remaining >= 5; i++) {
-             if (scores[i] + 5 <= 10) {
-                scores[i] += 5;
-                remaining -= 5;
-                updated = true;
-             }
-         }
-         if (!updated) break;
-      }
-      
-      return scores;
-    }
+    /* ========== Kriter Düzenleme ========== */
+    window.editCriteria = function() {
+      const popup = document.getElementById('criteriaPopup');
+      const inputsContainer = document.getElementById('criteriaInputs');
+      inputsContainer.innerHTML = '';
+      criteria.forEach((criterion, i) => {
+        const group = document.createElement('div');
+        group.className = 'criteria-input-group';
+        const label = document.createElement('label');
+        label.innerHTML = `<i class="fas fa-check-circle"></i> Kriter ${i+1}:`;
+        const textarea = document.createElement('textarea');
+        textarea.value = criterion.replace(/\n/g,' ');
+        textarea.id = `criterion${i}`;
+        group.appendChild(label);
+        group.appendChild(textarea);
+        inputsContainer.appendChild(group);
+      });
+      popup.style.display = 'flex';
+      setTimeout(() => {
+        popup.classList.add('active');
+      }, 10);
+    };
+    window.closeCriteriaPopup = function() {
+      document.getElementById('criteriaPopup').style.display = 'none';
+    };
+    window.saveCriteria = function() {
+      criteria = Array.from({ length: 10 }, (_, i) => {
+        const ta = document.getElementById(`criterion${i}`);
+        const words = ta.value.trim().split(' ');
+        let lines = [];
+        let currentLine = [];
+        let currentLength = 0;
+        words.forEach(word => {
+          if(currentLength + word.length > 15) {
+            lines.push(currentLine.join(' '));
+            currentLine = [word];
+            currentLength = word.length;
+          } else {
+            currentLine.push(word);
+            currentLength += word.length+1;
+          }
+        });
+        if(currentLine.length>0) lines.push(currentLine.join(' '));
+        return lines.join('\n');
+      });
+      updateCriteriaDisplay();
+      saveToLocalStorage();
+      closeCriteriaPopup();
+    };
 
     /* ========== Tablo / Title / Kriterler ========== */
     function updateTable() {
@@ -1777,8 +1809,6 @@
               step="5"
               data-student="${currentClass}-${idx}"
               data-value="${total}"
-              onchange="handleTotalScoreChange(this)"
-              oninput="handleTotalScoreChange(this)"
             />
           </td>
           <td class="no-print">
@@ -1788,6 +1818,7 @@
         tbody.appendChild(row);
       });
       
+      // Puan giriş alanlarına değişiklik dinleyicisi ekle
       document.querySelectorAll('.score-input').forEach(input => {
         input.addEventListener('change', function() {
           const info = this.dataset.info.split('-');
@@ -1796,9 +1827,11 @@
           const scoreIdx = parseInt(info[2]);
           const newValue = parseInt(this.value) || 0;
           
+          // Değeri güncelle
           allStudents[cls][studentIdx].scores[scoreIdx] = newValue;
           this.dataset.value = newValue;
           
+          // Toplam puanı güncelle
           const row = this.closest('tr');
           const total = allStudents[cls][studentIdx].scores.reduce((a,b)=>a+b,0);
           const totalInput = row.querySelector('.total-score-input');
@@ -1808,6 +1841,153 @@
           saveToLocalStorage();
         });
       });
+      
+      // Toplam puan giriş alanlarına değişiklik dinleyicisi ekle
+      document.querySelectorAll('.total-score-input').forEach(input => {
+        // Hem change hem de input olaylarını dinle
+        input.addEventListener('change', totalScoreChangeHandler);
+        input.addEventListener('input', totalScoreChangeHandler);
+      });
+    }
+
+    // Toplam puan değişikliği için olay işleyicisi
+    function totalScoreChangeHandler(event) {
+      try {
+        console.log("Toplam puan değişti:", event.target.value);
+        
+        const inputElement = event.target;
+        const info = inputElement.dataset.student.split('-');
+        const cls = info[0];
+        const studentIdx = parseInt(info[1]);
+        
+        // Toplam puanı al ve 5'in katı yap
+        let newTotal = parseInt(inputElement.value) || 0;
+        const roundedTotal = Math.round(newTotal / 5) * 5;
+        
+        console.log(`Toplam puan: ${newTotal} -> ${roundedTotal}`);
+        
+        // Yuvarlanan değeri input'a yaz
+        inputElement.value = roundedTotal;
+        
+        // Puanları dağıt
+        const distributedScores = distributeCriteriaPoints(roundedTotal);
+        console.log("Dağıtılan puanlar:", distributedScores);
+        
+        // Öğrenci verilerini güncelle
+        if (allStudents[cls] && allStudents[cls][studentIdx]) {
+          allStudents[cls][studentIdx].scores = [...distributedScores];
+          
+          // Tüm puan giriş alanlarını güncelle
+          const row = inputElement.closest('tr');
+          const scoreInputs = row.querySelectorAll('.score-input');
+          
+          scoreInputs.forEach((input, index) => {
+            if (index < distributedScores.length) {
+              input.value = distributedScores[index];
+              input.dataset.value = distributedScores[index];
+            }
+          });
+          
+          inputElement.dataset.value = roundedTotal;
+          saveToLocalStorage();
+        } else {
+          console.error("Öğrenci verisi bulunamadı:", cls, studentIdx);
+        }
+      } catch (error) {
+        console.error("Toplam puan değişikliği işlenirken hata:", error);
+      }
+    }
+
+    function distributeCriteriaPoints(totalPoints) {
+      try {
+        const count = 10; // 10 kriter
+        
+        // Toplam puanı 5'in katı yap (yuvarla)
+        totalPoints = Math.round(totalPoints / 5) * 5;
+        
+        console.log("distributeCriteriaPoints çağrıldı, toplam puan:", totalPoints);
+        
+        // Eğer toplam puan 0 veya daha az ise, tüm puanları 0 yap
+        if (totalPoints <= 0) {
+          return Array(count).fill(0);
+        }
+        
+        // Eğer toplam puan 100'den fazla ise, 100 olarak sınırla
+        if (totalPoints > 100) {
+          totalPoints = 100;
+        }
+        
+        // Puanları dağıtmak için dizi
+        const scores = Array(count).fill(0);
+        
+        // Toplam puanı 5'in katları olarak dağıt
+        let remainingPoints = totalPoints;
+        
+        // Rastgele bir dağıtım için kriterleri karıştır
+        const criteriaIndices = Array.from({ length: count }, (_, i) => i);
+        
+        // Fisher-Yates algoritması ile diziyi karıştır
+        for (let i = criteriaIndices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [criteriaIndices[i], criteriaIndices[j]] = [criteriaIndices[j], criteriaIndices[i]];
+        }
+        
+        // Basit dağıtım algoritması - her kritere eşit dağıt
+        const basePoints = Math.min(Math.floor(totalPoints / count), 10);
+        
+        // Her kritere temel puanı ver
+        for (let i = 0; i < count; i++) {
+          scores[i] = basePoints;
+          remainingPoints -= basePoints;
+        }
+        
+        // Kalan puanları rastgele dağıt (her kritere maksimum 10 puan)
+        while (remainingPoints >= 5) {
+          // Puanı 10'dan az olan kriterleri bul
+          const availableCriteria = criteriaIndices.filter(index => scores[index] < 10);
+          
+          // Eğer tüm kriterler 10 puana ulaştıysa, döngüden çık
+          if (availableCriteria.length === 0) break;
+          
+          // Rastgele bir kriter seç
+          const randomIndex = availableCriteria[Math.floor(Math.random() * availableCriteria.length)];
+          
+          // Seçilen kritere 5 puan ekle (maksimum 10 puan)
+          const pointsToAdd = Math.min(5, 10 - scores[randomIndex]);
+          scores[randomIndex] += pointsToAdd;
+          remainingPoints -= pointsToAdd;
+        }
+        
+        console.log("Dağıtılan puanlar:", scores, "Toplam:", scores.reduce((a,b)=>a+b,0));
+        
+        return scores;
+      } catch (error) {
+        console.error("Puan dağıtımı sırasında hata:", error);
+        return Array(10).fill(0); // Hata durumunda sıfır dizi döndür
+      }
+    }
+
+    /* ========== LocalStorage İşlemleri ========== */
+    function saveToLocalStorage() {
+      localStorage.setItem('allStudents', JSON.stringify(allStudents));
+      localStorage.setItem('criteria', JSON.stringify(criteria));
+      localStorage.setItem('appVersion', APP_VERSION);
+    }
+    
+    function loadFromLocalStorage() {
+      const storedStudents = localStorage.getItem('allStudents');
+      const storedCriteria = localStorage.getItem('criteria');
+      const storedVersion = localStorage.getItem('appVersion');
+      
+      // Sürüm kontrolü
+      if (storedVersion === APP_VERSION) {
+        if (storedStudents) {
+          allStudents = JSON.parse(storedStudents);
+        }
+        if (storedCriteria) {
+          criteria = JSON.parse(storedCriteria);
+        }
+      }
     }
 
     function updateTitles() {
@@ -1831,39 +2011,23 @@
       updateTable();
     }
 
-    /* ========== LocalStorage İşlemleri ========== */
-    function saveToLocalStorage() {
-      localStorage.setItem('allStudents', JSON.stringify(allStudents));
-      localStorage.setItem('criteria', JSON.stringify(criteria));
-      localStorage.setItem('appVersion', APP_VERSION);
-    }
-    function loadFromLocalStorage() {
-      const storedStudents = localStorage.getItem('allStudents');
-      const storedCriteria = localStorage.getItem('criteria');
-      const storedVersion = localStorage.getItem('appVersion');
-      
-      if (storedVersion === APP_VERSION) {
-        if (storedStudents) {
-          allStudents = JSON.parse(storedStudents);
-        }
-        if (storedCriteria) {
-          criteria = JSON.parse(storedCriteria);
-        }
-      }
-    }
     function setupScoreInputs() {
       // Herhangi bir ekstra input ayarı yapılabilir
     }
     function printTables() {
+      // Yazdırma öncesi hazırlık
       const tableTitle = document.getElementById('dynamicTableTitle').textContent;
       const currentClassName = currentClass || '';
       
+      // Yazdırma sırasında tablo başlığını güncelle
       if (currentClassName) {
         document.getElementById('dynamicTableTitle').textContent = `${tableTitle} - ${currentClassName}`;
       }
       
+      // Yazdırma işlemini başlat
       window.print();
       
+      // Yazdırma sonrası tablo başlığını eski haline getir
       setTimeout(() => {
         document.getElementById('dynamicTableTitle').textContent = tableTitle;
       }, 500);
@@ -1877,6 +2041,51 @@
         location.reload();
       }
     }
+
+    // Ekleme formundaki puan önizleme fonksiyonu
+    window.updateAddPointsPreview = function() {
+      const totalPoints = parseInt(document.getElementById('studentPoints').value) || 0;
+      const previewContainer = document.getElementById('addPointsPreviewContainer');
+      const previewDiv = document.getElementById('addPointsPreview');
+      
+      if (totalPoints <= 0 || totalPoints > 100) {
+        previewContainer.style.display = 'none';
+        return;
+      }
+      
+      // Toplam puanı 5'in katı yap
+      const roundedTotal = Math.round(totalPoints / 5) * 5;
+      
+      const distributedPoints = distributeCriteriaPoints(roundedTotal);
+      
+      previewDiv.innerHTML = '';
+      previewContainer.style.display = 'block';
+      
+      // Puan dağılımını göster
+      let html = '<div class="points-preview-table">';
+      html += '<table style="width:100%; border-collapse: collapse; margin-top: 5px;">';
+      html += '<tr style="background-color: #f5f5f5;">';
+      
+      // Kriter başlıkları
+      for (let i = 0; i < 10; i++) {
+        html += `<th style="padding: 5px; border: 1px solid #ddd; font-size: 12px; text-align: center;">K${i+1}</th>`;
+      }
+      html += '</tr><tr>';
+      
+      // Puan değerleri
+      distributedPoints.forEach(point => {
+        html += `<td style="padding: 5px; border: 1px solid #ddd; font-size: 12px; text-align: center;">${point}</td>`;
+      });
+      
+      html += '</tr></table>';
+      html += '<div style="display: flex; justify-content: space-between; margin-top: 5px;">';
+      html += '<button onclick="updateAddPointsPreview()" style="background: #673AB7; color: white; border: none; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;"><i class="fas fa-random"></i> Yeniden Dağıt</button>';
+      html += '<div style="font-size: 12px; color: #666;">Toplam: ' + roundedTotal + '</div>';
+      html += '</div>';
+      html += '</div>';
+      
+      previewDiv.innerHTML = html;
+    };
   </script>
 </body>
 </html>
