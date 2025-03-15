@@ -1863,31 +1863,39 @@
         const cls = info[0];
         const studentIdx = parseInt(info[1]);
         
-        // Boş değer kontrolü - boş ise puanları sıfırlama
+        // Boş değer kontrolü
         if (input.value.trim() === '') {
+          // Tüm puanları sıfırla
+          if (allStudents[cls] && allStudents[cls][studentIdx]) {
+            allStudents[cls][studentIdx].scores = Array(10).fill(0);
+            const row = input.closest('tr');
+            const scoreInputs = row.querySelectorAll('.score-input');
+            scoreInputs.forEach(input => {
+              input.value = '0';
+              input.dataset.value = '0';
+            });
+            saveToLocalStorage();
+          }
           return;
         }
         
-        // Sayısal değer kontrolü
-        if (isNaN(input.value)) {
-          input.value = input.value.replace(/[^0-9]/g, '');
+        // Sayısal değer kontrolü ve temizleme
+        let cleanValue = input.value.replace(/[^0-9]/g, '');
+        let newTotal = parseInt(cleanValue);
+        
+        // Geçersiz değer kontrolü
+        if (isNaN(newTotal)) {
+          newTotal = 0;
         }
         
-        // Toplam puanı al ve 5'in katı yap
-        let newTotal = parseInt(input.value) || 0;
-        const roundedTotal = Math.round(newTotal / 5) * 5;
-        
-        // 100'den büyükse 100'e sabitle
-        if (roundedTotal > 100) {
+        // 100'den büyük değerleri sınırla
+        if (newTotal > 100) {
           newTotal = 100;
         }
         
+        // 5'in katına yuvarlama
+        const roundedTotal = Math.round(newTotal / 5) * 5;
         console.log(`Toplam puan: ${newTotal} -> ${roundedTotal}`);
-        
-        // Yuvarlanan değeri input'a yaz (sadece geçerli bir sayı varsa)
-        if (input.value !== '') {
-          input.value = roundedTotal;
-        }
         
         // Puanları dağıt
         const distributedScores = distributeCriteriaPoints(roundedTotal);
@@ -1895,12 +1903,16 @@
         
         // Öğrenci verilerini güncelle
         if (allStudents[cls] && allStudents[cls][studentIdx]) {
+          // Toplam puanı güncelle
+          input.value = roundedTotal;
+          input.dataset.value = roundedTotal;
+          
+          // Puanları dağıt ve kaydet
           allStudents[cls][studentIdx].scores = [...distributedScores];
           
-          // Tüm puan giriş alanlarını güncelle
+          // Kriter puanlarını güncelle
           const row = input.closest('tr');
           const scoreInputs = row.querySelectorAll('.score-input');
-          
           scoreInputs.forEach((scoreInput, index) => {
             if (index < distributedScores.length) {
               scoreInput.value = distributedScores[index];
@@ -1908,7 +1920,6 @@
             }
           });
           
-          input.dataset.value = roundedTotal;
           saveToLocalStorage();
         } else {
           console.error("Öğrenci verisi bulunamadı:", cls, studentIdx);
@@ -1922,68 +1933,37 @@
       try {
         const count = 10; // 10 kriter
         
-        // Toplam puanı 5'in katı yap (yuvarla)
-        totalPoints = Math.round(totalPoints / 5) * 5;
-        
-        console.log("distributeCriteriaPoints çağrıldı, toplam puan:", totalPoints);
-        
-        // Eğer toplam puan 0 veya daha az ise, tüm puanları 0 yap
+        // Toplam puanı kontrol et
         if (totalPoints <= 0) {
           return Array(count).fill(0);
         }
         
-        // Eğer toplam puan 100'den fazla ise, 100 olarak sınırla
         if (totalPoints > 100) {
           totalPoints = 100;
         }
         
-        // Puanları dağıtmak için dizi
-        const scores = Array(count).fill(0);
+        // Her kritere eşit dağıtılacak baz puanı hesapla
+        const basePoints = Math.floor(totalPoints / count);
+        let remainingPoints = totalPoints - (basePoints * count);
         
-        // Toplam puanı 5'in katları olarak dağıt
-        let remainingPoints = totalPoints;
+        // Puanları dağıt
+        const scores = Array(count).fill(basePoints);
         
-        // Rastgele bir dağıtım için kriterleri karıştır
-        const criteriaIndices = Array.from({ length: count }, (_, i) => i);
-        
-        // Fisher-Yates algoritması ile diziyi karıştır
-        for (let i = criteriaIndices.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [criteriaIndices[i], criteriaIndices[j]] = [criteriaIndices[j], criteriaIndices[i]];
-        }
-        
-        // Basit dağıtım algoritması - her kritere eşit dağıt
-        const basePoints = Math.min(Math.floor(totalPoints / count), 10);
-        
-        // Her kritere temel puanı ver
-        for (let i = 0; i < count; i++) {
-          scores[i] = basePoints;
-          remainingPoints -= basePoints;
-        }
-        
-        // Kalan puanları rastgele dağıt (her kritere maksimum 10 puan)
-        while (remainingPoints >= 5) {
-          // Puanı 10'dan az olan kriterleri bul
-          const availableCriteria = criteriaIndices.filter(index => scores[index] < 10);
-          
-          // Eğer tüm kriterler 10 puana ulaştıysa, döngüden çık
-          if (availableCriteria.length === 0) break;
-          
-          // Rastgele bir kriter seç
-          const randomIndex = availableCriteria[Math.floor(Math.random() * availableCriteria.length)];
-          
-          // Seçilen kritere 5 puan ekle (maksimum 10 puan)
-          const pointsToAdd = Math.min(5, 10 - scores[randomIndex]);
-          scores[randomIndex] += pointsToAdd;
-          remainingPoints -= pointsToAdd;
+        // Kalan puanları rastgele dağıt
+        while (remainingPoints > 0) {
+          for (let i = 0; i < count && remainingPoints > 0; i++) {
+            if (scores[i] < 10) { // Her kriter maksimum 10 puan alabilir
+              scores[i]++;
+              remainingPoints--;
+            }
+          }
         }
         
         console.log("Dağıtılan puanlar:", scores, "Toplam:", scores.reduce((a,b)=>a+b,0));
-        
         return scores;
       } catch (error) {
         console.error("Puan dağıtımı sırasında hata:", error);
-        return Array(10).fill(0); // Hata durumunda sıfır dizi döndür
+        return Array(10).fill(0);
       }
     }
 
