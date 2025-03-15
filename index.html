@@ -702,6 +702,113 @@
     #editClassPopup .popup-header h3 {
       font-size: 15px;
     }
+
+    /* ========== Yazdırma Stilleri ========== */
+    @media print {
+      @page {
+        size: landscape;  /* Yatay A4 */
+        margin: 1cm;
+      }
+      
+      body {
+        background: white;
+        padding: 0;
+        margin: 0;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      
+      .container {
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        background: white;
+      }
+      
+      .form-container, 
+      .class-add-group, 
+      .tabs-container, 
+      .student-info-group, 
+      .button-group,
+      .no-print {
+        display: none !important;
+      }
+      
+      .tables-container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .book-table {
+        page-break-inside: avoid;
+        width: 100%;
+      }
+      
+      .table-responsive {
+        overflow: visible;
+        max-width: none;
+        box-shadow: none;
+      }
+      
+      table {
+        width: 100%;
+        font-size: 10pt;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      
+      th, td {
+        border: 1px solid #000;
+        padding: 3px;
+        text-align: center;
+        vertical-align: middle;
+      }
+      
+      .main-title {
+        font-size: 14pt;
+        margin-bottom: 10px;
+        text-align: center;
+        font-weight: bold;
+      }
+      
+      #dynamicTableTitle {
+        font-size: 12pt;
+        margin-bottom: 5px;
+        text-align: center;
+        font-weight: bold;
+      }
+      
+      .criteria-header {
+        font-size: 12pt;
+        background-color: #e9ecef !important;
+        font-weight: bold;
+      }
+      
+      .criteria-row th {
+        font-size: 9pt;
+        background-color: #f8f9fa !important;
+        font-weight: bold;
+      }
+      
+      .student-number-header, .name-header, .total-header {
+        background-color: #f8f9fa !important;
+        font-weight: bold;
+      }
+      
+      .score-input {
+        border: none;
+        background: transparent;
+        font-size: 10pt;
+        width: 100%;
+        text-align: center;
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+        appearance: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1459,6 +1566,7 @@
                 min="0" 
                 max="10"
                 data-info="${currentClass}-${idx}-${ci}"
+                data-value="${score}"
               />
             </td>`;
         });
@@ -1470,6 +1578,28 @@
             <button onclick="deleteStudent(${idx})" class="delete-btn"><i class="fas fa-trash-alt"></i> Sil</button>
           </td>`;
         tbody.appendChild(row);
+      });
+      
+      // Puan giriş alanlarına değişiklik dinleyicisi ekle
+      document.querySelectorAll('.score-input').forEach(input => {
+        input.addEventListener('change', function() {
+          const info = this.dataset.info.split('-');
+          const cls = info[0];
+          const studentIdx = parseInt(info[1]);
+          const scoreIdx = parseInt(info[2]);
+          const newValue = parseInt(this.value) || 0;
+          
+          // Değeri güncelle
+          allStudents[cls][studentIdx].scores[scoreIdx] = newValue;
+          this.dataset.value = newValue;
+          
+          // Toplam puanı güncelle
+          const row = this.closest('tr');
+          const total = allStudents[cls][studentIdx].scores.reduce((a,b)=>a+b,0);
+          row.cells[row.cells.length - 2].textContent = total;
+          
+          saveToLocalStorage();
+        });
       });
     }
 
@@ -1543,7 +1673,22 @@
       // Herhangi bir ekstra input ayarı yapılabilir
     }
     function printTables() {
+      // Yazdırma öncesi hazırlık
+      const tableTitle = document.getElementById('dynamicTableTitle').textContent;
+      const currentClassName = currentClass || '';
+      
+      // Yazdırma sırasında tablo başlığını güncelle
+      if (currentClassName) {
+        document.getElementById('dynamicTableTitle').textContent = `${tableTitle} - ${currentClassName}`;
+      }
+      
+      // Yazdırma işlemini başlat
       window.print();
+      
+      // Yazdırma sonrası tablo başlığını eski haline getir
+      setTimeout(() => {
+        document.getElementById('dynamicTableTitle').textContent = tableTitle;
+      }, 500);
     }
 
     /* Verileri Sıfırlama Fonksiyonu */
