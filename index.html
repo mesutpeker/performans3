@@ -587,6 +587,24 @@
       font-size: 11px; 
       text-align: center;
     }
+    
+    .total-score-input {
+      width: 100%; 
+      padding: 2px; 
+      border: 1px solid #4CAF50;
+      border-radius: 2px; 
+      font-size: 11px; 
+      text-align: center;
+      background-color: #f0fff0;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .total-score-input:focus {
+      outline: none;
+      border-color: #2196F3;
+      box-shadow: 0 0 3px rgba(33, 150, 243, 0.5);
+    }
 
     /* Tek Tablo başlığının ortalanması ve 12 punto ayarı */
     #dynamicTableTitle {
@@ -802,6 +820,18 @@
         border: none;
         background: transparent;
         font-size: 10pt;
+        width: 100%;
+        text-align: center;
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+        appearance: none;
+      }
+      
+      .total-score-input {
+        border: none;
+        background: transparent;
+        font-size: 10pt;
+        font-weight: bold;
         width: 100%;
         text-align: center;
         -webkit-appearance: none;
@@ -1407,7 +1437,7 @@
         alert('Lütfen öğrenci adını giriniz');
         return;
       }
-      if (!totalPoints || totalPoints < 0 || totalPoints > 100) {
+      if (isNaN(totalPoints) || totalPoints < 0 || totalPoints > 100) {
         alert('Lütfen 0-100 arası puan giriniz');
         return;
       }
@@ -1415,10 +1445,14 @@
         alert("Bu numarada bir öğrenci zaten mevcut: " + currentClass);
         return;
       }
+      
+      // Toplam puanı 5'in katı yap
+      const roundedTotal = Math.round(totalPoints / 5) * 5;
+      
       allStudents[currentClass].push({
         number,
         name,
-        scores: distributeCriteriaPoints(totalPoints)
+        scores: distributeCriteriaPoints(roundedTotal)
       });
       updateTable();
       saveToLocalStorage();
@@ -1470,8 +1504,9 @@
         return;
       }
       
-      // Varsayılan puanı al
-      const defaultPoints = parseInt(document.getElementById('excelDefaultPoints').value) || 50;
+      // Varsayılan puanı al ve 5'in katı yap
+      let defaultPoints = parseInt(document.getElementById('excelDefaultPoints').value) || 50;
+      defaultPoints = Math.round(defaultPoints / 5) * 5;
       
       const lines = rawText.split('\n').map(line => line.trim()).filter(Boolean);
       let addedCount = 0;
@@ -1561,10 +1596,13 @@
             return;
           }
           
+          // Puanı 5'in katı yap
+          const points = Math.round(parseInt(stuObj.points) / 5) * 5;
+          
           allStudents[className].push({
             number: stuObj.number,
             name: stuObj.name,
-            scores: distributeCriteriaPoints(parseInt(stuObj.points))
+            scores: distributeCriteriaPoints(points)
           });
         });
       });
@@ -1596,18 +1634,28 @@
       const name = document.getElementById('editStudentName').value.trim();
       const totalPoints = parseInt(document.getElementById('editPoints').value);
 
-      if(!number || !name || (totalPoints<0 || totalPoints>100)) {
-        alert("Geçersiz veri!");
+      if(!number || !name) {
+        alert("Geçersiz veri! Öğrenci numarası ve adı gereklidir.");
         return;
       }
+      
+      if(isNaN(totalPoints) || totalPoints < 0 || totalPoints > 100) {
+        alert("Geçersiz puan! 0-100 arası bir değer giriniz.");
+        return;
+      }
+      
       if(allStudents[currentClass].some((stu, i) => i!==index && stu.number===number)) {
         alert("Bu numara zaten var: " + number);
         return;
       }
+      
+      // Toplam puanı 5'in katı yap
+      const roundedTotal = Math.round(totalPoints / 5) * 5;
+      
       allStudents[currentClass][index] = {
         number,
         name,
-        scores: distributeCriteriaPoints(totalPoints)
+        scores: distributeCriteriaPoints(roundedTotal)
       };
       updateTable();
       saveToLocalStorage();
@@ -1739,7 +1787,18 @@
         });
         const total = stu.scores.reduce((a,b)=>a+b,0);
         row.innerHTML += `
-          <td>${total}</td>
+          <td>
+            <input 
+              type="number" 
+              class="total-score-input"
+              value="${total}" 
+              min="0" 
+              max="100"
+              step="5"
+              data-student="${currentClass}-${idx}"
+              data-value="${total}"
+            />
+          </td>
           <td class="no-print">
             <button onclick="editStudent(${idx})" class="edit-btn"><i class="fas fa-edit"></i> Düzenle</button>
             <button onclick="deleteStudent(${idx})" class="delete-btn"><i class="fas fa-trash-alt"></i> Sil</button>
@@ -1763,8 +1822,39 @@
           // Toplam puanı güncelle
           const row = this.closest('tr');
           const total = allStudents[cls][studentIdx].scores.reduce((a,b)=>a+b,0);
-          row.cells[row.cells.length - 2].textContent = total;
+          const totalInput = row.querySelector('.total-score-input');
+          totalInput.value = total;
+          totalInput.dataset.value = total;
           
+          saveToLocalStorage();
+        });
+      });
+      
+      // Toplam puan giriş alanlarına değişiklik dinleyicisi ekle
+      document.querySelectorAll('.total-score-input').forEach(input => {
+        input.addEventListener('change', function() {
+          const info = this.dataset.student.split('-');
+          const cls = info[0];
+          const studentIdx = parseInt(info[1]);
+          const newTotal = parseInt(this.value) || 0;
+          
+          // Toplam puanı 5'in katı yap
+          const roundedTotal = Math.round(newTotal / 5) * 5;
+          this.value = roundedTotal;
+          
+          // Puanları dağıt
+          const distributedScores = distributeCriteriaPoints(roundedTotal);
+          allStudents[cls][studentIdx].scores = distributedScores;
+          
+          // Tüm puan giriş alanlarını güncelle
+          const row = this.closest('tr');
+          const scoreInputs = row.querySelectorAll('.score-input');
+          scoreInputs.forEach((input, index) => {
+            input.value = distributedScores[index];
+            input.dataset.value = distributedScores[index];
+          });
+          
+          this.dataset.value = roundedTotal;
           saveToLocalStorage();
         });
       });
@@ -1807,18 +1897,25 @@
         totalPoints = 100;
       }
       
-      // Her kritere eşit dağıtım için başlangıç değeri
-      const baseValue = Math.floor(totalPoints / count);
+      // Puanları dağıtmak için dizi
+      const scores = Array(count).fill(0);
       
-      // Kalan puanları dağıtmak için
-      const remainder = totalPoints % count;
+      // Toplam puanı 5'in katları olarak dağıt
+      let remainingPoints = totalPoints;
       
-      // Puanları dağıt
-      const scores = Array(count).fill(baseValue);
+      // İlk tur: Her kritere en az 5 puan ver (mümkünse)
+      for (let i = 0; i < count && remainingPoints >= 5; i++) {
+        scores[i] = 5;
+        remainingPoints -= 5;
+      }
       
-      // Kalan puanları dağıt (5'in katları olacak şekilde)
-      for (let i = 0; i < remainder; i++) {
-        scores[i]++;
+      // İkinci tur: Kalan puanları farklı sütunlara dağıt
+      // Önce yüksek puanları dağıt
+      while (remainingPoints >= 5) {
+        // En düşük puanlı kritere 5 puan ekle
+        const minIndex = scores.indexOf(Math.min(...scores));
+        scores[minIndex] += 5;
+        remainingPoints -= 5;
       }
       
       return scores;
