@@ -1809,6 +1809,8 @@
               step="5"
               data-student="${currentClass}-${idx}"
               data-value="${total}"
+              onchange="handleTotalScoreChange(this)"
+              oninput="handleTotalScoreChange(this)"
             />
           </td>
           <td class="no-print">
@@ -1842,21 +1844,11 @@
         });
       });
       
-      // Toplam puan giriş alanlarına değişiklik dinleyicisi ekle
-      document.querySelectorAll('.total-score-input').forEach(input => {
-        // Hem change hem de input olaylarını dinle
-        input.addEventListener('change', function() {
-          updateTotalScoreAndDistribute(this);
-        });
-        
-        input.addEventListener('input', function() {
-          updateTotalScoreAndDistribute(this);
-        });
-      });
+      // Not: Toplam puan giriş alanlarına olay dinleyicileri doğrudan HTML içinde eklendi
     }
 
     // Toplam puanı güncelleyen ve kriterlere dağıtan fonksiyon
-    function updateTotalScoreAndDistribute(inputElement) {
+    window.handleTotalScoreChange = function(inputElement) {
       const info = inputElement.dataset.student.split('-');
       const cls = info[0];
       const studentIdx = parseInt(info[1]);
@@ -1866,9 +1858,14 @@
       const roundedTotal = Math.round(newTotal / 5) * 5;
       inputElement.value = roundedTotal;
       
+      console.log("Dağıtılacak toplam puan:", roundedTotal);
+      
       // Puanları dağıt
       const distributedScores = distributeCriteriaPoints(roundedTotal);
-      allStudents[cls][studentIdx].scores = distributedScores;
+      console.log("Dağıtılan puanlar:", distributedScores);
+      
+      // Öğrenci verilerini güncelle
+      allStudents[cls][studentIdx].scores = [...distributedScores];
       
       // Tüm puan giriş alanlarını güncelle
       const row = inputElement.closest('tr');
@@ -1919,6 +1916,8 @@
         totalPoints = 100;
       }
       
+      console.log("distributeCriteriaPoints çağrıldı, toplam puan:", totalPoints);
+      
       // Puanları dağıtmak için dizi
       const scores = Array(count).fill(0);
       
@@ -1934,16 +1933,19 @@
         [criteriaIndices[i], criteriaIndices[j]] = [criteriaIndices[j], criteriaIndices[i]];
       }
       
-      // İlk tur: Her kritere en fazla 5 puan dağıt (mümkünse)
-      for (let i = 0; i < count && remainingPoints >= 5; i++) {
-        const index = criteriaIndices[i];
-        scores[index] = 5;
-        remainingPoints -= 5;
+      // Basitleştirilmiş dağıtım algoritması
+      // Önce her kritere eşit dağıtmaya çalış (maksimum 10 puan)
+      const basePoints = Math.min(Math.floor(totalPoints / count), 10);
+      
+      // Her kritere temel puanı ver
+      for (let i = 0; i < count; i++) {
+        scores[i] = basePoints;
+        remainingPoints -= basePoints;
       }
       
-      // İkinci tur: Kalan puanları rastgele dağıt, her kritere maksimum 10 puan olacak şekilde
+      // Kalan puanları rastgele dağıt (her kritere maksimum 10 puan)
       while (remainingPoints >= 5) {
-        // Rastgele bir kriter seç, ancak puanı 10'dan az olan kriterlerden seç
+        // Puanı 10'dan az olan kriterleri bul
         const availableCriteria = criteriaIndices.filter(index => scores[index] < 10);
         
         // Eğer tüm kriterler 10 puana ulaştıysa, döngüden çık
@@ -1952,10 +1954,13 @@
         // Rastgele bir kriter seç
         const randomIndex = availableCriteria[Math.floor(Math.random() * availableCriteria.length)];
         
-        // Seçilen kritere 5 puan ekle
-        scores[randomIndex] += 5;
-        remainingPoints -= 5;
+        // Seçilen kritere 5 puan ekle (maksimum 10 puan)
+        const pointsToAdd = Math.min(5, 10 - scores[randomIndex]);
+        scores[randomIndex] += pointsToAdd;
+        remainingPoints -= pointsToAdd;
       }
+      
+      console.log("Dağıtılan puanlar:", scores, "Toplam:", scores.reduce((a,b)=>a+b,0));
       
       return scores;
     }
