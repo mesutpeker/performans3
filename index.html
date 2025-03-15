@@ -1811,7 +1811,8 @@
               step="5"
               data-student="${currentClass}-${idx}"
               data-value="${total}"
-              onchange="updateTotalScore(this)"
+              oninput="updateTotalScore(this)"
+              onfocus="this.select()"
             />
           </td>
           <td class="no-print">
@@ -1852,6 +1853,11 @@
         const info = input.dataset.student.split('-');
         const cls = info[0];
         const studentIdx = parseInt(info[1]);
+        
+        // Boş veya geçersiz değer kontrolü
+        if (input.value === '' || isNaN(input.value)) {
+          input.value = '0';
+        }
         
         // Toplam puanı al ve 5'in katı yap
         let newTotal = parseInt(input.value) || 0;
